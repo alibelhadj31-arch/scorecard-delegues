@@ -157,7 +157,6 @@
   <div class="panel" style="border-color:var(--teal);">
     <h2>① Données partagées automatiquement</h2>
     <p class="hint">Tous les délégués ajoutés depuis <b>ce lien</b> sont enregistrés et visibles par toute personne qui ouvre ce même lien — délégués, District Managers, national. Aucun fichier à télécharger ni à réimporter. Le bouton ci-dessous reste utile en secours seulement.</p>
-    <div id="storageWarning" style="display:none;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad);border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.6;margin-bottom:14px;"></div>
     <div class="upload-row">
       <div class="field file">
         <label for="importInput">Restaurer depuis une sauvegarde de secours (.json)</label>
@@ -860,12 +859,6 @@ function render(){
 // ---------- Démarrage ----------
 (async function init(){
   document.getElementById('chipsArea').innerHTML = '<div class="empty-state">Chargement des délégués…</div>';
-  const storageOK = cloudStorageAvailable();
-  if(!storageOK){
-    const warn = document.getElementById('storageWarning');
-    warn.style.display = 'block';
-    warn.innerHTML = "ℹ️ <b>Stockage partagé (Claude) indisponible dans ce contexte.</b> Vos délégués sont tout de même sauvegardés automatiquement dans <b>ce navigateur, sur cet appareil</b> — ils resteront là même après avoir fermé Chrome. En revanche, pour les partager avec d'autres personnes (ou les retrouver sur un autre appareil/navigateur), utilisez le fichier de sauvegarde .json ci-dessus.";
-  }
   DELEGATES = await loadFromCloud();
   document.getElementById('dmNameInput').value = await loadDmName();
   document.getElementById('dmNameInput').addEventListener('input', ()=>{
