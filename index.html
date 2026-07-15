@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scorecard Délégués — Algérie</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#0f2b2e;
+    --paper:#f6f4ee;
+    --panel:#ffffff;
+    --line:#d8d2c2;
+    --teal:#0f5257;
+    --teal-deep:#0a3a3d;
+    --amber:#c98a2b;
+    --amber-soft:#f2e2c4;
+    --good:#2f7a4f;
+    --good-bg:#e5f2e9;
+    --mid:#c98a2b;
+    --mid-bg:#faf1de;
+    --bad:#b34632;
+    --bad-bg:#fbe9e4;
+    --mono: 'JetBrains Mono','Courier New',monospace;
+    --sans: 'Inter','Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at top left, rgba(15,82,87,0.06), transparent 55%), var(--paper);
+    color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:2px solid var(--teal-deep); padding-bottom:18px;margin-bottom:22px;flex-wrap:wrap;gap:14px;
+  }
+  .brand-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin:0 0 6px;}
+  h1{font-size:30px;margin:0;font-weight:800;letter-spacing:-0.01em;color:var(--teal-deep);}
+  .subtitle{margin:6px 0 0;color:#5a6b62;font-size:14px;max-width:560px;}
+  .meta-tag{font-family:var(--mono);font-size:12px;background:var(--teal-deep);color:#eef4ef;padding:8px 14px;border-radius:3px;white-space:nowrap;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 20px 16px;margin-bottom:22px;}
+  .panel h2{font-size:14px;margin:0 0 14px;text-transform:uppercase;letter-spacing:.07em;color:var(--teal-deep);border-bottom:1px solid var(--line);padding-bottom:10px;font-weight:800;}
+  .panel h2 .count{float:right;font-family:var(--mono);font-weight:400;color:#8a9890;text-transform:none;letter-spacing:0;}
+  .panel .hint{font-size:12.5px;color:#6f8079;margin:-6px 0 14px;line-height:1.5;}
+
+  /* Upload */
+  .upload-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;gap:5px;min-width:220px;flex:1;}
+  .field.file{min-width:260px;}
+  label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6f8079;font-weight:600;}
+  input[type=text]{
+    font-family:var(--sans);font-size:14.5px;padding:9px 10px;border-radius:5px;border:1px solid var(--line);background:#fff;color:var(--ink);
+  }
+  input[type=text]:focus, select:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  input[type=file]{font-family:var(--sans);font-size:13px;}
+  button{
+    font-family:var(--sans);font-weight:700;font-size:13.5px;background:var(--teal-deep);color:#eef4ef;
+    border:none;border-radius:5px;padding:10px 18px;cursor:pointer;white-space:nowrap;
+  }
+  button:hover{background:var(--teal);}
+  button:disabled{opacity:.6;cursor:default;}
+  button.ghost{background:transparent;color:var(--bad);border:1px solid var(--bad);padding:3px 8px;font-size:11px;border-radius:4px;}
+  button.secondary{background:#fff;color:var(--teal-deep);border:1px solid var(--line);}
+  button.secondary:hover{background:#faf8f0;}
+  #uploadMsg{font-size:12.5px;color:var(--teal);margin-top:8px;min-height:16px;}
+  #uploadMsg.error{color:var(--bad);}
+  #backupMsg{font-size:12.5px;color:var(--teal);margin-top:8px;min-height:16px;}
+  #backupMsg.error{color:var(--bad);}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .chip{
+    display:flex;align-items:center;gap:8px;background:#faf8f0;border:1px solid var(--line);
+    border-radius:999px;padding:6px 8px 6px 14px;font-size:12.5px;
+  }
+  .chip b{color:var(--teal-deep);}
+  .empty-state{font-size:13px;color:#8a9890;font-style:italic;margin-top:10px;}
+
+  /* Filter bar */
+  .filters{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+  .field.small{min-width:180px;flex:0 0 auto;}
+  select{
+    font-family:var(--sans);font-size:14.5px;padding:9px 10px;border-radius:5px;border:1px solid var(--line);background:#fff;color:var(--ink);
+    appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230f5257' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;cursor:pointer;
+  }
+  .scope-note{font-size:12.5px;color:#6f8079;flex-basis:100%;margin-top:2px;}
+
+  /* KPI cards */
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px;}
+  @media (max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 16px 14px;position:relative;overflow:hidden;}
+  .kpi.hero{background:var(--teal-deep);color:#eef4ef;border-color:var(--teal-deep);}
+  .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6f8079;font-weight:700;margin-bottom:10px;}
+  .kpi.hero .label{color:#a9c6c2;}
+  .kpi .value{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1;color:var(--teal-deep);}
+  .kpi.hero .value{color:#fff;font-size:34px;}
+  .kpi .sub{font-size:11.5px;color:#7c8b83;margin-top:8px;font-family:var(--mono);}
+  .kpi.hero .sub{color:#c7ddd8;}
+  .bar-track{height:5px;border-radius:3px;background:#e9e5d8;margin-top:12px;overflow:hidden;}
+  .kpi.hero .bar-track{background:rgba(255,255,255,0.18);}
+  .bar-fill{height:100%;border-radius:3px;background:var(--teal);}
+  .status-pill{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;letter-spacing:.02em;}
+  .status-Excellent{background:var(--good-bg);color:var(--good);}
+  .status-Correct{background:var(--mid-bg);color:var(--mid);}
+  .status-Ameliorer{background:var(--bad-bg);color:var(--bad);}
+  .status-Incomplet{background:#eee;color:#888;}
+  .kpi.hero .status-pill{background:rgba(255,255,255,0.14);}
+
+  .chart-wrap{height:260px;}
+  .chart-wrap canvas{width:100%;height:100%;display:block;}
+  .legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#5a6b62;}
+  .legend-row span{display:inline-flex;align-items:center;gap:6px;}
+  .legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#6f8079;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  td{padding:8px 10px;border-bottom:1px solid #eee7d8;font-family:var(--mono);white-space:nowrap;}
+  td.name{font-family:var(--sans);white-space:normal;font-weight:600;}
+  tr.selected td{background:var(--amber-soft);}
+  tr.selected td.name{color:var(--teal-deep);}
+  tr:hover td{background:#faf8f0;}
+  tr.selected:hover td{background:var(--amber-soft);}
+  .mini-bar{display:inline-block;width:60px;height:6px;background:#e9e5d8;border-radius:3px;vertical-align:middle;margin-right:6px;overflow:hidden;}
+  .mini-bar i{display:block;height:100%;background:var(--teal);}
+  .rank{color:#a3ac9f;font-weight:700;}
+  .scroll-table{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:6px;}
+  .scroll-table table{margin:0;}
+  .scroll-table th{position:sticky;top:0;background:#fff;z-index:1;}
+
+  .empty-detail{font-size:13.5px;color:#6f8079;background:#faf8f0;border:1px dashed var(--line);border-radius:6px;padding:18px;line-height:1.6;}
+  .empty-detail b{color:var(--teal-deep);}
+  footer{font-size:11.5px;color:#8a9890;text-align:center;margin-top:30px;font-family:var(--mono);line-height:1.8;}
+  .badge-src{font-family:var(--mono);font-size:10px;background:var(--amber-soft);color:#7a4e0f;padding:2px 7px;border-radius:3px;margin-left:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="brand-eyebrow">Réseau terrain · Algérie</p>
+      <h1>Scorecard Délégués Médicaux</h1>
+      <p class="subtitle">Chargez le fichier plan/réalisé de chaque délégué (format Atika) — le calcul suit le modèle officiel Algeria KPIs (30% Couverture + 30% Visites + 30% RF.HF + 10% Jours Ouvrés, plafonné à 100%).</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+      <div class="field" style="min-width:210px;">
+        <label for="dmNameInput">District Manager</label>
+        <input type="text" id="dmNameInput" placeholder="Votre nom">
+      </div>
+      <div class="meta-tag" id="periodTag">—</div>
+    </div>
+  </header>
+
+  <div class="panel" style="border-color:var(--teal);">
+    <h2>① Données partagées automatiquement</h2>
+    <p class="hint">Tous les délégués ajoutés depuis <b>ce lien</b> sont enregistrés et visibles par toute personne qui ouvre ce même lien — délégués, District Managers, national. Aucun fichier à télécharger ni à réimporter. Le bouton ci-dessous reste utile en secours seulement.</p>
+    <div id="storageWarning" style="display:none;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad);border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.6;margin-bottom:14px;"></div>
+    <div class="upload-row">
+      <div class="field file">
+        <label for="importInput">Restaurer depuis une sauvegarde de secours (.json)</label>
+        <input type="file" id="importInput" accept=".json">
+      </div>
+      <button id="exportBtn" class="secondary">⬇️ Télécharger une copie de secours</button>
+    </div>
+    <div id="backupMsg"></div>
+  </div>
+
+  <div class="panel">
+    <h2>② Charger un délégué <span class="count" id="loadedCount"></span></h2>
+    <p class="hint">Enregistré automatiquement dès l'ajout — visible instantanément par tous ceux qui ont ce lien.</p>
+    <div class="upload-row">
+      <div class="field">
+        <label for="nameInput">Nom du délégué</label>
+        <input type="text" id="nameInput" placeholder="ex. Chouari Zohra">
+      </div>
+      <div class="field file">
+        <label for="fileInput">Fichier plan/réalisé (.xlsx, format Atika)</label>
+        <input type="file" id="fileInput" accept=".xlsx">
+      </div>
+      <button id="addBtn">Ajouter ce délégué</button>
+    </div>
+    <div id="uploadMsg"></div>
+    <div id="loadingMsg" style="font-size:12.5px;color:#6f8079;margin-top:8px;"></div>
+    <div class="chips" id="chipsArea"></div>
+  </div>
+
+  <div class="panel">
+    <div class="filters">
+      <div class="field">
+        <label for="delegateSelect">Délégué</label>
+        <select id="delegateSelect"></select>
+      </div>
+      <div class="field small">
+        <label for="monthSelect">Mois</label>
+        <select id="monthSelect"></select>
+      </div>
+      <div class="scope-note" id="scopeNote"></div>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="panel">
+    <h2>Évolution du score global <span class="count" id="trendCount"></span></h2>
+    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    <div class="legend-row" id="trendLegend"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Classement des délégués — <span id="rankingMonthLabel"></span> <span class="count" id="rankingCount"></span></h2>
+    <div class="scroll-table">
+      <table id="rankingTable">
+        <thead><tr><th>#</th><th>Délégué</th><th>Couverture</th><th>Visites</th><th>RF.HF</th><th>Jours Ouv.</th><th>Score global</th></tr></thead>
+        <tbody id="rankingBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Détail terrain (médecins/pharmacies)</h2>
+    <div id="detailArea"></div>
+  </div>
+
+  <footer>
+    Calcul effectué localement dans votre navigateur, dans le modèle Algeria KPIs — aucune donnée n'est envoyée à un serveur.<br>
+    Application 100% autonome — fonctionne sans connexion internet.<br>
+    Vos délégués sont sauvegardés automatiquement dans ce navigateur (ils restent après fermeture de Chrome). Chaque ajout télécharge aussi une sauvegarde .json — gardez-la pour partager les données ou les restaurer sur un autre appareil.
+  </footer>
+</div>
+
+<script>
+/* =========================================================================
+   MINI-LECTEUR XLSX (aucune bibliothèque externe — fonctionne hors-ligne)
+   Un fichier .xlsx est une archive ZIP contenant des fichiers XML.
+   On lit ici uniquement ce dont on a besoin : workbook.xml, ses relations,
+   les feuilles (worksheets) et les chaînes partagées (sharedStrings).
+   ========================================================================= */
+function colLetters(n){
+  let s = '';
+  while(n > 0){
+    const rem = (n - 1) % 26;
+    s = String.fromCharCode(65 + rem) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function readZipCentralDirectory(arrayBuffer){
+  const buf = new Uint8Array(arrayBuffer);
+  const dv = new DataView(arrayBuffer);
+  let eocdOffset = -1;
+  const searchStart = Math.max(0, buf.length - 22 - 65536);
+  for(let i = buf.length - 22; i >= searchStart; i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eocdOffset = i; break; }
+  }
+  if(eocdOffset < 0) throw new Error("Structure ZIP invalide (le fichier n'est peut-être pas un .xlsx valide)");
+  const cdCount = dv.getUint16(eocdOffset+10, true);
+  const cdOffset = dv.getUint32(eocdOffset+16, true);
+  let offset = cdOffset;
+  const entries = {};
+  for(let i=0;i<cdCount;i++){
+    const sig = dv.getUint32(offset, true);
+    if(sig !== 0x02014b50) break;
+    const method = dv.getUint16(offset+10, true);
+    const compSize = dv.getUint32(offset+20, true);
+    const nameLen = dv.getUint16(offset+28, true);
+    const extraLen = dv.getUint16(offset+30, true);
+    const commentLen = dv.getUint16(offset+32, true);
+    const localHeaderOffset = dv.getUint32(offset+42, true);
+    const nameBytes = buf.subarray(offset+46, offset+46+nameLen);
+    const name = new TextDecoder('utf-8').decode(nameBytes);
+    entries[name] = { method, compSize, localHeaderOffset };
+    offset += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+
+async function extractZipEntry(arrayBuffer, entry){
+  const dv = new DataView(arrayBuffer);
+  const buf = new Uint8Array(arrayBuffer);
+  const lo = entry.localHeaderOffset;
+  const sig = dv.getUint32(lo, true);
+  if(sig !== 0x04034b50) throw new Error('En-tête ZIP local invalide');
+  const nameLen = dv.getUint16(lo+26, true);
+  const extraLen = dv.getUint16(lo+28, true);
+  const dataStart = lo + 30 + nameLen + extraLen;
+  const compData = buf.slice(dataStart, dataStart + entry.compSize);
+  if(entry.method === 0){
+    return compData;
+  } else if(entry.method === 8){
+    if(typeof DecompressionStream === 'undefined'){
+      throw new Error("Votre navigateur est trop ancien pour lire les fichiers .xlsx compressés (DecompressionStream indisponible). Utilisez une version récente de Chrome.");
+    }
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new Blob([compData]).stream().pipeThrough(ds);
+    const ab = await new Response(stream).arrayBuffer();
+    return new Uint8Array(ab);
+  } else {
+    throw new Error('Méthode de compression ZIP non supportée: ' + entry.method);
+  }
+}
+
+function parseXml(text){
+  return new DOMParser().parseFromString(text, 'application/xml');
+}
+
+function parseSharedStrings(xmlText){
+  if(!xmlText) return [];
+  const doc = parseXml(xmlText);
+  const sis = doc.getElementsByTagName('si');
+  const arr = [];
+  for(let i=0;i<sis.length;i++){
+    const ts = sis[i].getElementsByTagName('t');
+    let text = '';
+    for(let j=0;j<ts.length;j++){ text += ts[j].textContent; }
+    arr.push(text);
+  }
+  return arr;
+}
+
+function parseWorkbookSheets(xmlText){
+  const doc = parseXml(xmlText);
+  const sheetEls = doc.getElementsByTagName('sheet');
+  const list = [];
+  for(let i=0;i<sheetEls.length;i++){
+    const el = sheetEls[i];
+    const name = el.getAttribute('name');
+    let rId = el.getAttribute('r:id');
+    if(!rId){
+      for(let a=0;a<el.attributes.length;a++){
+        if(el.attributes[a].localName === 'id'){ rId = el.attributes[a].value; break; }
+      }
+    }
+    list.push({name, rId});
+  }
+  return list;
+}
+
+function parseRels(xmlText){
+  const doc = parseXml(xmlText);
+  const rels = doc.getElementsByTagName('Relationship');
+  const map = {};
+  for(let i=0;i<rels.length;i++){
+    map[rels[i].getAttribute('Id')] = rels[i].getAttribute('Target');
+  }
+  return map;
+}
+
+function parseWorksheetXml(xmlText, sharedStrings){
+  const doc = parseXml(xmlText);
+  const cCells = doc.getElementsByTagName('c');
+  const ws = {};
+  for(let i=0;i<cCells.length;i++){
+    const c = cCells[i];
+    const addr = c.getAttribute('r');
+    if(!addr) continue;
+    const t = c.getAttribute('t');
+    let value = null;
+    if(t === 's'){
+      const vEl = c.getElementsByTagName('v')[0];
+      if(vEl){ const idx = parseInt(vEl.textContent,10); value = sharedStrings[idx] != null ? sharedStrings[idx] : null; }
+    } else if(t === 'inlineStr'){
+      const isEl = c.getElementsByTagName('is')[0];
+      value = isEl ? isEl.textContent : null;
+    } else if(t === 'str'){
+      const vEl = c.getElementsByTagName('v')[0];
+      value = vEl ? vEl.textContent : null;
+    } else if(t === 'b'){
+      const vEl = c.getElementsByTagName('v')[0];
+      value = vEl ? (vEl.textContent === '1') : null;
+    } else {
+      const vEl = c.getElementsByTagName('v')[0];
+      if(vEl){
+        const num = parseFloat(vEl.textContent);
+        value = isNaN(num) ? vEl.textContent : num;
+      }
+    }
+    ws[addr] = { v: value };
+  }
+  return ws;
+}
+
+async function readWorkbookLite(arrayBuffer){
+  // Lecture via SheetJS (bibliothèque XLSX robuste et largement testée) —
+  // remplace l'ancien lecteur ZIP/XML "maison", qui échouait silencieusement
+  // sur certains fichiers (variantes de compression, appareils/navigateurs
+  // ne supportant pas DecompressionStream, etc.)
+  let wb;
+  try{
+    wb = XLSX.read(new Uint8Array(arrayBuffer), {type:'array'});
+  }catch(err){
+    throw new Error("Fichier illisible (n'est peut-être pas un .xlsx valide) : " + err.message);
+  }
+  return { SheetNames: wb.SheetNames, Sheets: wb.Sheets };
+}
+
+/* =========================================================================
+   MINI-GRAPHIQUE (canvas natif — aucune bibliothèque externe)
+   ========================================================================= */
+function drawLineChart(canvas, labels, datasets){
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = canvas.parentElement.clientWidth;
+  const cssHeight = canvas.parentElement.clientHeight;
+  canvas.width = Math.max(1, cssWidth*dpr);
+  canvas.height = Math.max(1, cssHeight*dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssWidth,cssHeight);
+
+  const padding = {left:38, right:14, top:14, bottom:24};
+  const plotW = Math.max(10, cssWidth - padding.left - padding.right);
+  const plotH = Math.max(10, cssHeight - padding.top - padding.bottom);
+  const n = labels.length;
+
+  ctx.strokeStyle = '#e9e5d8'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#7c8b83'; ctx.font = '10px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let g=0; g<=100; g+=25){
+    const y = padding.top + plotH - (g/100)*plotH;
+    ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(cssWidth-padding.right, y); ctx.stroke();
+    ctx.fillText(g+'%', padding.left-6, y);
+  }
+  ctx.textAlign='center'; ctx.textBaseline='top'; ctx.font = '9.5px sans-serif';
+  labels.forEach((lab,i)=>{
+    const x = padding.left + (n<=1?plotW/2:(i/(n-1))*plotW);
+    ctx.fillText(lab.slice(0,3), x, cssHeight-padding.bottom+6);
+  });
+
+  datasets.forEach(ds=>{
+    ctx.strokeStyle = ds.color; ctx.lineWidth = ds.width||2.2;
+    ctx.setLineDash(ds.dashed ? [5,3] : []);
+    ctx.beginPath();
+    let started = false;
+    ds.data.forEach((val,i)=>{
+      const x = padding.left + (n<=1?plotW/2:(i/(n-1))*plotW);
+      if(val==null){ started=false; return; }
+      const y = padding.top + plotH - (Math.min(val,100)/100)*plotH;
+      if(!started){ ctx.moveTo(x,y); started=true; } else { ctx.lineTo(x,y); }
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = ds.color;
+    ds.data.forEach((val,i)=>{
+      if(val==null) return;
+      const x = padding.left + (n<=1?plotW/2:(i/(n-1))*plotW);
+      const y = padding.top + plotH - (Math.min(val,100)/100)*plotH;
+      ctx.beginPath(); ctx.arc(x,y, ds.pointRadius||3, 0, Math.PI*2); ctx.fill();
+    });
+  });
+}
+
+/* =========================================================================
+   SAUVEGARDE PARTAGÉE (Claude) — visible par tous ceux qui ouvrent ce lien
+   + EXPORT / IMPORT MANUEL (.json) en secours
+   ========================================================================= */
+const STORAGE_KEY = 'delegates';
+
+const LOCAL_KEY = 'scorecard_delegues_local_v1';
+const LOCAL_DM_KEY = 'scorecard_delegues_dm_local_v1';
+
+async function saveToCloud(){
+  // Sauvegarde locale (ce navigateur, cet appareil) — toujours tentée en premier,
+  // c'est elle qui garantit que les données survivent à la fermeture de Chrome.
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(DELEGATES)); }catch(err){ console.error('Erreur localStorage', err); }
+  // Sauvegarde partagée (Claude) — en plus, quand disponible, pour un partage entre personnes.
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(DELEGATES), true);
+    return true;
+  }catch(err){
+    return false;
+  }
+}
+
+function cloudStorageAvailable(){
+  return typeof window.storage !== 'undefined'
+    && typeof window.storage.get === 'function'
+    && typeof window.storage.set === 'function';
+}
+
+async function loadFromCloud(){
+  // On tente d'abord le stockage partagé (Claude) : il peut contenir les
+  // ajouts faits par d'autres personnes depuis le même lien.
+  let cloudData = null;
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res){
+      const parsed = JSON.parse(res.value);
+      if(parsed && typeof parsed === 'object') cloudData = parsed;
+    }
+  }catch(err){ /* stockage partagé indisponible dans ce contexte */ }
+
+  // Sauvegarde locale de ce navigateur (survit à la fermeture de Chrome).
+  let localData = null;
+  try{
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === 'object') localData = parsed;
+    }
+  }catch(err){ /* localStorage indisponible (mode privé, etc.) */ }
+
+  // On fusionne : les données locales d'abord, puis le partagé vient
+  // compléter/écraser avec ce que d'autres ont pu ajouter entre-temps.
+  return Object.assign({}, localData || {}, cloudData || {});
+}
+
+async function saveDmName(v){
+  try{ localStorage.setItem(LOCAL_DM_KEY, v); }catch(err){}
+  try{ await window.storage.set('dm_name', v, false); }catch(err){}
+}
+async function loadDmName(){
+  try{
+    const res = await window.storage.get('dm_name', false);
+    if(res && res.value) return res.value;
+  }catch(err){}
+  try{
+    const local = localStorage.getItem(LOCAL_DM_KEY);
+    if(local) return local;
+  }catch(err){}
+  return '';
+}
+
+/* =========================================================================
+   LOGIQUE MÉTIER (modèle Algeria KPIs) — inchangée
+   ========================================================================= */
+const MONTH_SHEETS = ['Jan','Fev','Mars','Avr','Mai','Juin','Juill','Aou','Sept','Oct','Nov','Dec'];
+const MONTH_LABELS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const GLOBAL_KEY = "__GLOBAL__";
+
+let DELEGATES = {};
+
+function cellVal(ws, col, row){
+  const addr = colLetters(col) + row;
+  const cell = ws[addr];
+  return cell ? cell.v : null;
+}
+
+function parseDelegateWorkbook(wb, providedName){
+  const months = {};
+  MONTH_SHEETS.forEach(sheetName=>{
+    const ws = wb.Sheets[sheetName];
+    if(!ws){ months[sheetName] = {hasData:false}; return; }
+
+    const cov_target = cellVal(ws,4,214), cov_actual = cellVal(ws,4,215), cov_pct = cellVal(ws,4,216);
+    const vis_target = cellVal(ws,4,219), vis_actual = cellVal(ws,4,220), vis_pct = cellVal(ws,4,221);
+    const wd_target  = cellVal(ws,4,225), wd_actual  = cellVal(ws,4,226), wd_pct  = cellVal(ws,4,227);
+    const score = cellVal(ws,4,235);
+    let status = cellVal(ws,4,236);
+    const rf_target = cellVal(ws,4,240), rf_actual = cellVal(ws,4,241), rf_pct = cellVal(ws,4,242);
+
+    const statusStr = (typeof status === 'string') ? status : '';
+    const hasData = cov_target!=null && typeof score === 'number' && !statusStr.toLowerCase().includes('incomplet');
+
+    const doctors = [];
+    let r = 5;
+    while(r < 250){
+      const name = cellVal(ws,2,r);
+      if(name == null || name === 'TOTAL ÉQUIPE') break;
+      doctors.push({
+        name, specialty: cellVal(ws,3,r), status: cellVal(ws,4,r),
+        freq_target: cellVal(ws,37,r), freq_done: cellVal(ws,71,r),
+        taux_real: cellVal(ws,73,r), respectees: cellVal(ws,74,r),
+        improvisees: cellVal(ws,75,r), manquees: cellVal(ws,76,r)
+      });
+      r++;
+    }
+
+    months[sheetName] = {
+      hasData, cov_target, cov_actual, cov_pct, vis_target, vis_actual, vis_pct,
+      wd_target, wd_actual, wd_pct, rf_target, rf_actual, rf_pct, score, status, doctors
+    };
+  });
+  return { name: providedName, months };
+}
+
+function cap(v){ return Math.min(v==null?0:v, 1); }
+function scoreFromCaps(cov,vis,rf,wd){ return cap(cov)*0.3 + cap(vis)*0.3 + cap(rf)*0.3 + cap(wd)*0.1; }
+function statusOf(score){
+  if(score >= 0.90) return {label:"Excellent", cls:"status-Excellent"};
+  if(score >= 0.75) return {label:"Correct", cls:"status-Correct"};
+  return {label:"À améliorer", cls:"status-Ameliorer"};
+}
+function pct(v){ return (v*100).toFixed(1)+"%"; }
+
+function aggregate(entries){
+  const valid = entries.filter(e => e && e.hasData);
+  if(!valid.length) return null;
+  let s = {covT:0,covA:0,visT:0,visA:0,rfT:0,rfA:0,wdT:0,wdA:0};
+  valid.forEach(e=>{
+    s.covT += e.cov_target||0; s.covA += e.cov_actual||0;
+    s.visT += e.vis_target||0; s.visA += e.vis_actual||0;
+    s.rfT  += e.rf_target||0;  s.rfA  += e.rf_actual||0;
+    s.wdT  += e.wd_target||0;  s.wdA  += e.wd_actual||0;
+  });
+  const cov = s.covT ? s.covA/s.covT : 0;
+  const vis = s.visT ? s.visA/s.visT : 0;
+  const rf  = s.rfT  ? s.rfA/s.rfT  : 0;
+  const wd  = s.wdT  ? s.wdA/s.wdT  : 0;
+  return {cov, vis, rf, wd, score: scoreFromCaps(cov,vis,rf,wd)};
+}
+
+function monthEntriesFor(delegateName, monthKey){
+  const names = delegateName===GLOBAL_KEY ? Object.keys(DELEGATES) : [delegateName];
+  const monthKeys = monthKey==="__ALL__" ? MONTH_SHEETS : [monthKey];
+  const out = [];
+  names.forEach(n=>{
+    const d = DELEGATES[n]; if(!d) return;
+    monthKeys.forEach(m=>{ if(d.months[m]) out.push(d.months[m]); });
+  });
+  return out;
+}
+
+/* ---------- Upload UI ---------- */
+document.getElementById('fileInput').addEventListener('change', ()=>{
+  const f = document.getElementById('fileInput').files[0];
+  const nameField = document.getElementById('nameInput');
+  if(f && !nameField.value){
+    let guess = f.name.replace(/\.xlsx$/i,'').replace(/[_\-]+/g,' ')
+      .replace(/evaluation.*delegue.*plan.*realise/i,'').replace(/reconstruit/i,'').trim();
+    nameField.value = guess;
+  }
+});
+
+function downloadBackupFile(){
+  const names = Object.keys(DELEGATES);
+  if(!names.length) return false;
+  const blob = new Blob([JSON.stringify(DELEGATES)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scorecard_delegues_sauvegarde.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const msg = document.getElementById('uploadMsg');
+  msg.className=''; msg.textContent='';
+  const name = document.getElementById('nameInput').value.trim();
+  const file = document.getElementById('fileInput').files[0];
+  if(!name){ msg.className='error'; msg.textContent="Indiquez le nom du délégué."; return; }
+  if(!file){ msg.className='error'; msg.textContent="Choisissez un fichier .xlsx."; return; }
+
+  const addBtn = document.getElementById('addBtn');
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    addBtn.disabled = true; addBtn.textContent = 'Lecture...';
+    try{
+      const data = e.target.result;
+      const wb = await readWorkbookLite(data);
+      const parsed = parseDelegateWorkbook(wb, name);
+      const monthsFound = MONTH_SHEETS.filter(m => parsed.months[m] && parsed.months[m].hasData);
+      if(monthsFound.length===0){
+        msg.className='error';
+        msg.textContent = "Aucune période exploitable trouvée (feuilles Jan-Dec absentes ou 'Jours Travaillés Réels' non complété).";
+        addBtn.disabled = false; addBtn.textContent = 'Ajouter ce délégué';
+        return;
+      }
+      DELEGATES[name] = parsed;
+      await saveToCloud();
+      downloadBackupFile();
+      msg.className = '';
+      msg.textContent = `${name} ajouté — ${monthsFound.length} mois exploitable(s) (${monthsFound.map(m=>MONTH_LABELS[MONTH_SHEETS.indexOf(m)]).join(', ')}). Enregistré et visible par tous ceux qui ouvrent ce lien.`;
+      addBtn.disabled = false; addBtn.textContent = 'Ajouter ce délégué';
+      document.getElementById('nameInput').value='';
+      document.getElementById('fileInput').value='';
+      refreshChips();
+      populateSelects();
+      render();
+    }catch(err){
+      msg.className='error';
+      msg.textContent = "Impossible de lire ce fichier : " + err.message;
+      addBtn.disabled = false; addBtn.textContent = 'Ajouter ce délégué';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function refreshChips(){
+  const area = document.getElementById('chipsArea');
+  const names = Object.keys(DELEGATES);
+  document.getElementById('loadedCount').textContent = names.length + ' délégué(s) chargé(s)';
+  if(!names.length){
+    area.innerHTML = `<div class="empty-state">Aucun délégué chargé pour l'instant. Si vous en aviez déjà ajouté, remontez en haut et utilisez <b>« Restaurer depuis une sauvegarde de secours (.json) »</b> avec le dernier fichier téléchargé — sinon, ajoutez un fichier ci-dessus pour commencer.</div>`;
+    return;
+  }
+  area.innerHTML = '';
+  names.forEach(n=>{
+    const chip = document.createElement('div');
+    chip.className='chip';
+    chip.innerHTML = `<b>${n}</b><button class="ghost" data-name="${n}">Retirer</button>`;
+    chip.querySelector('button').addEventListener('click', async ()=>{
+      delete DELEGATES[n];
+      await saveToCloud();
+      refreshChips(); populateSelects(); render();
+    });
+    area.appendChild(chip);
+  });
+}
+
+/* ---------- Sauvegarde / restauration manuelle ---------- */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const msg = document.getElementById('backupMsg');
+  const names = Object.keys(DELEGATES);
+  if(!names.length){ msg.className='error'; msg.textContent = "Aucun délégué à sauvegarder pour l'instant."; return; }
+  downloadBackupFile();
+  msg.className=''; msg.textContent = `Sauvegarde téléchargée (${names.length} délégué(s)). Gardez ce fichier en lieu sûr.`;
+});
+
+document.getElementById('importInput').addEventListener('change', ()=>{
+  const msg = document.getElementById('backupMsg');
+  const file = document.getElementById('importInput').files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed || typeof parsed !== 'object') throw new Error('format inattendu');
+      const names = Object.keys(parsed);
+      names.forEach(n=>{ DELEGATES[n] = parsed[n]; });
+      await saveToCloud();
+      refreshChips(); populateSelects(); render();
+      msg.className=''; msg.textContent = `${names.length} délégué(s) restauré(s) depuis la sauvegarde.`;
+    }catch(err){
+      msg.className='error'; msg.textContent = "Impossible de lire cette sauvegarde : " + err.message;
+    }
+    document.getElementById('importInput').value='';
+  };
+  reader.readAsText(file);
+});
+
+/* ---------- Filters / render ---------- */
+function populateSelects(){
+  const delSel = document.getElementById('delegateSelect');
+  const prevVal = delSel.value;
+  delSel.innerHTML = '';
+  const optGlobal = document.createElement('option');
+  optGlobal.value = GLOBAL_KEY; optGlobal.textContent = "🌍 Vue globale — délégués chargés";
+  delSel.appendChild(optGlobal);
+  Object.keys(DELEGATES).sort((a,b)=>a.localeCompare(b)).forEach(n=>{
+    const o = document.createElement('option'); o.value=n; o.textContent=n; delSel.appendChild(o);
+  });
+  if(Object.keys(DELEGATES).includes(prevVal) || prevVal===GLOBAL_KEY) delSel.value = prevVal;
+
+  const moSel = document.getElementById('monthSelect');
+  const prevMonth = moSel.value;
+  moSel.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = "__ALL__"; optAll.textContent = "Cumul (toutes périodes)";
+  moSel.appendChild(optAll);
+  MONTH_SHEETS.forEach((m,i)=>{
+    const o = document.createElement('option'); o.value=m; o.textContent=MONTH_LABELS[i]; moSel.appendChild(o);
+  });
+  if(prevMonth) moSel.value = prevMonth; else moSel.value = "__ALL__";
+}
+
+function render(){
+  const mr = document.getElementById('delegateSelect').value;
+  const month = document.getElementById('monthSelect').value;
+  const isGlobal = mr === GLOBAL_KEY;
+
+  document.getElementById('periodTag').textContent =
+    (month==="__ALL__" ? "Cumul" : MONTH_LABELS[MONTH_SHEETS.indexOf(month)]) + " · " + (isGlobal ? "Vue globale" : mr);
+  const dmName = document.getElementById('dmNameInput').value.trim();
+  document.getElementById('scopeNote').textContent = isGlobal
+    ? `Vue globale${dmName ? ' — District Manager : ' + dmName : ''} : agrégat des ${Object.keys(DELEGATES).length} délégué(s) chargé(s) (somme réalisé / somme cible, méthode Algeria KPIs).`
+    : "Délégué : " + mr;
+
+  const agg = aggregate(monthEntriesFor(mr, month)) || {cov:0,vis:0,rf:0,wd:0,score:0};
+  const st = statusOf(agg.score);
+  const hasAny = monthEntriesFor(mr, month).some(e=>e.hasData);
+
+  const cards = [
+    {label:"Couverture", value: hasAny?pct(cap(agg.cov)):"—", sub:"Réel / Cible", raw: agg.cov},
+    {label:"Volume Visites", value: hasAny?pct(cap(agg.vis)):"—", sub:"Réel / Cible", raw: agg.vis},
+    {label:"RF.HF", value: hasAny?pct(cap(agg.rf)):"—", sub:"Fréquence respectée", raw: agg.rf},
+    {label:"Jours Ouvrés", value: hasAny?pct(cap(agg.wd)):"—", sub:"Réel / Cible", raw: agg.wd},
+  ];
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = '';
+  cards.forEach(c=>{
+    const el = document.createElement('div'); el.className='kpi';
+    el.innerHTML = `<div class="label">${c.label}</div><div class="value">${c.value}</div><div class="sub">${c.sub}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(cap(c.raw)*100).toFixed(1)}%"></div></div>`;
+    grid.appendChild(el);
+  });
+  const heroEl = document.createElement('div'); heroEl.className='kpi hero';
+  heroEl.innerHTML = `<div class="label">${isGlobal && dmName ? 'Évaluation ' + dmName + ' — ' : ''}Score Global — 30/30/30/10</div>
+    <div class="value">${hasAny?pct(agg.score):"—"}</div>
+    <div class="sub">Plafonné à 100% par critère</div>
+    ${hasAny ? `<span class="status-pill ${st.cls}">${st.label}</span>` : `<span class="status-pill status-Incomplet">Aucune donnée</span>`}`;
+  grid.appendChild(heroEl);
+
+  // Trend
+  const selSeries = MONTH_SHEETS.map(m=>{
+    const a = aggregate(monthEntriesFor(mr, m));
+    return a ? +(a.score*100).toFixed(1) : null;
+  });
+  const globalSeries = MONTH_SHEETS.map(m=>{
+    const a = aggregate(monthEntriesFor(GLOBAL_KEY, m));
+    return a ? +(a.score*100).toFixed(1) : null;
+  });
+  const canvas = document.getElementById('trendChart');
+  const datasets = [];
+  const legendItems = [];
+  if(!isGlobal){
+    datasets.push({data: selSeries, color:'#c98a2b', width:2.5, pointRadius:4});
+    legendItems.push({label:mr, color:'#c98a2b'});
+  }
+  datasets.push({data: globalSeries, color:'#0f5257', width:2, pointRadius:3, dashed: !isGlobal});
+  legendItems.push({label:'Vue globale', color:'#0f5257'});
+  drawLineChart(canvas, MONTH_LABELS, datasets);
+  document.getElementById('trendLegend').innerHTML = legendItems.map(li=>
+    `<span><span class="legend-dot" style="background:${li.color}"></span>${li.label}</span>`).join('');
+  document.getElementById('trendCount').textContent = MONTH_SHEETS.filter(m=>selSeries[MONTH_SHEETS.indexOf(m)]!=null || globalSeries[MONTH_SHEETS.indexOf(m)]!=null).length + ' périodes avec données';
+
+  // Ranking
+  document.getElementById('rankingMonthLabel').textContent = month==="__ALL__" ? "Cumul" : MONTH_LABELS[MONTH_SHEETS.indexOf(month)];
+  const ranked = Object.keys(DELEGATES).map(n=>{
+    const a = aggregate(monthEntriesFor(n, month));
+    return a ? {mr:n, agg:a} : null;
+  }).filter(Boolean).sort((a,b)=>b.agg.score - a.agg.score);
+  const body = document.getElementById('rankingBody'); body.innerHTML='';
+  ranked.forEach((r,i)=>{
+    const tr = document.createElement('tr');
+    if(r.mr===mr) tr.className='selected';
+    tr.innerHTML = `<td class="rank">${i+1}</td><td class="name">${r.mr}</td>
+      <td>${pct(cap(r.agg.cov))}</td><td>${pct(cap(r.agg.vis))}</td><td>${pct(cap(r.agg.rf))}</td><td>${pct(cap(r.agg.wd))}</td>
+      <td><span class="mini-bar"><i style="width:${(cap(r.agg.score)*100).toFixed(1)}%"></i></span>${pct(r.agg.score)}</td>`;
+    tr.style.cursor='pointer';
+    tr.addEventListener('click', ()=>{ document.getElementById('delegateSelect').value=r.mr; render(); });
+    body.appendChild(tr);
+  });
+  document.getElementById('rankingCount').textContent = ranked.length + ' délégué(s) sur cette période';
+
+  // Detail
+  const detailArea = document.getElementById('detailArea');
+  const singleMonth = month!=="__ALL__" ? month : null;
+  if(!isGlobal && singleMonth && DELEGATES[mr] && DELEGATES[mr].months[singleMonth] && DELEGATES[mr].months[singleMonth].hasData){
+    const docs = DELEGATES[mr].months[singleMonth].doctors || [];
+    const rowsHtml = docs.map(d=>`<tr>
+      <td class="name">${d.name}</td><td>${d.specialty||''}</td><td>${d.status||''}</td>
+      <td>${d.freq_target ?? ''}</td><td>${d.freq_done ?? ''}</td>
+      <td>${d.taux_real!=null ? pct(d.taux_real): ''}</td>
+      <td>${d.respectees ?? ''}</td><td>${d.improvisees ?? ''}</td><td>${d.manquees ?? ''}</td></tr>`).join('');
+    detailArea.innerHTML = `<div class="scroll-table"><table>
+      <thead><tr><th>Médecin / Pharmacie</th><th>Spécialité</th><th>Statut</th><th>Fréq. cible</th><th>Visites réal.</th><th>Taux réal.</th><th>Respectées</th><th>Improvisées</th><th>Manquées</th></tr></thead>
+      <tbody>${rowsHtml}</tbody></table></div>`;
+  } else {
+    detailArea.innerHTML = `<div class="empty-detail">
+      Sélectionnez <b>un délégué précis</b> et <b>un seul mois</b> (pas "Cumul") pour voir le détail médecin par médecin.
+      ${isGlobal ? "La vue globale n'a pas de détail terrain propre." : ""}
+    </div>`;
+  }
+}
+
+// ---------- Démarrage ----------
+(async function init(){
+  document.getElementById('chipsArea').innerHTML = '<div class="empty-state">Chargement des délégués…</div>';
+  const storageOK = cloudStorageAvailable();
+  if(!storageOK){
+    const warn = document.getElementById('storageWarning');
+    warn.style.display = 'block';
+    warn.innerHTML = "ℹ️ <b>Stockage partagé (Claude) indisponible dans ce contexte.</b> Vos délégués sont tout de même sauvegardés automatiquement dans <b>ce navigateur, sur cet appareil</b> — ils resteront là même après avoir fermé Chrome. En revanche, pour les partager avec d'autres personnes (ou les retrouver sur un autre appareil/navigateur), utilisez le fichier de sauvegarde .json ci-dessus.";
+  }
+  DELEGATES = await loadFromCloud();
+  document.getElementById('dmNameInput').value = await loadDmName();
+  document.getElementById('dmNameInput').addEventListener('input', ()=>{
+    const v = document.getElementById('dmNameInput').value.trim();
+    saveDmName(v);
+    render();
+  });
+  refreshChips();
+  populateSelects();
+  document.getElementById('delegateSelect').value = GLOBAL_KEY;
+  document.getElementById('delegateSelect').addEventListener('change', render);
+  document.getElementById('monthSelect').addEventListener('change', render);
+  window.addEventListener('resize', render);
+  render();
+})();
+</script>
+</body>
+</html>
